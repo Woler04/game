@@ -6,43 +6,50 @@ public class MapGenerator : MonoBehaviour
     public GameObject originRoom;
     public GameObject[] rooms;
     private int roomCount;
-    private bool[] roomsNeigh;
     private HashSet<Vector3> occupiedPositions = new HashSet<Vector3>(); 
+	
 
-    void Start()
+
+    void Awake()
     {
         roomCount = rooms.Length - 1;
-        roomsNeigh = new bool[4];
-        occupiedPositions.Add(originRoom.transform.position); 
-        GenerateNeighbours(originRoom);
+        occupiedPositions.Add(originRoom.transform.position);
+        GenerateDungeon();
     }
 
-    private void GenerateNeighbours(GameObject room)
+    private void GenerateDungeon()
     {
-        if (roomCount < 0) return; 
-		bool hasRoom = false;
-		
-        SetRoom(room);
-    }
+        Stack<GameObject> roomStack = new Stack<GameObject>();
+        roomStack.Push(originRoom);
 
-    private void SetRoom(GameObject room)
-    {
-        Vector3[] directions = { Vector3.forward * 31, Vector3.left * 31, Vector3.right * 31, Vector3.back * 31};
+        Vector3[] directions = { Vector3.forward * 30, Vector3.left * 30, Vector3.right * 30, Vector3.back * 30 };
 
-        for (int i = 0; i < 4; i++)
+        while (roomStack.Count > 0 && roomCount >= 0)
         {
-            if (roomsNeigh[i] && roomCount >= 0) 
+            GameObject currentRoom = roomStack.Pop();
+
+            // Shuffle directions efficiently (Fisher-Yates)
+            for (int i = directions.Length - 1; i > 0; i--)
             {
-                Vector3 newPosition = room.transform.position + directions[i];
-				newPosition.y = 0;
+                int randomIndex = Random.Range(0, i + 1);
+                (directions[i], directions[randomIndex]) = (directions[randomIndex], directions[i]);
+            }
 
-                if (occupiedPositions.Contains(newPosition)) continue;
+            Vector3 roomPos = currentRoom.transform.position; // Cache position to reduce transform access
 
-                rooms[roomCount].transform.position = newPosition;
-                occupiedPositions.Add(newPosition);
-                roomCount--;
+            for (int i = 0; i < 4; i++)
+            {
+                if (roomCount < 0) break;
 
-                GenerateNeighbours(rooms[roomCount]);
+                Vector3 newPosition = roomPos + directions[i];
+                newPosition.y = 0;
+
+                if (occupiedPositions.Add(newPosition)) // HashSet.Add() returns false if already exists
+                {
+                    rooms[roomCount].transform.position = newPosition;
+                    roomStack.Push(rooms[roomCount]); // Push instead of enqueue for better cache locality
+                    roomCount--;
+                }
             }
         }
     }
