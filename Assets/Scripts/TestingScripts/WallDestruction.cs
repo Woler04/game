@@ -5,7 +5,7 @@ public class WallDestruction : MonoBehaviour
 {
     private void Start()
     {
-		StartCoroutine(LateStart(0.1f));
+		StartCoroutine(LateStart(0.01f));
     }
 
     private void CheckForCollisions()
